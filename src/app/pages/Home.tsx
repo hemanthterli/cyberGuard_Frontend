@@ -6,19 +6,31 @@ import { Input } from "../components/ui/input";
 
 const API_BASE = "http://localhost:8002";
 
+type DecisionData = {
+  bullying: string;
+  description: string;
+  phrases: string;
+  source: string;
+  impact_action: string;
+};
+
 type ContentState = {
   extracted: string;
   enhanced: string;
+  decision: DecisionData | null;
   loading: boolean;
   enhancing: boolean;
+  deciding: boolean;
   error: string;
 };
 
 const initialState: ContentState = {
   extracted: "",
   enhanced: "",
+  decision: null,
   loading: false,
   enhancing: false,
+  deciding: false,
   error: "",
 };
 
@@ -45,6 +57,18 @@ export default function Home() {
     return text as string;
   };
 
+  const extractDecisionFromResponse = async (response: Response) => {
+    const payload = await response.json();
+    if (!response.ok || !payload?.success) {
+      throw new Error(payload?.error?.detail || payload?.message || "Decision failed");
+    }
+    const data = payload?.data;
+    if (!data) {
+      throw new Error("No decision output returned");
+    }
+    return data as DecisionData;
+  };
+
   const enhanceContent = async (
     sourceType: string,
     source: string | null,
@@ -55,7 +79,7 @@ export default function Home() {
       setState((prev) => ({ ...prev, error: "No extracted content to enhance." }));
       return;
     }
-    setState((prev) => ({ ...prev, enhancing: true, error: "" }));
+    setState((prev) => ({ ...prev, enhancing: true, error: "", decision: null }));
     try {
       const body: Record<string, string> = {
         source_type: sourceType,
@@ -76,6 +100,38 @@ export default function Home() {
       setState((prev) => ({ ...prev, error: message }));
     } finally {
       setState((prev) => ({ ...prev, enhancing: false }));
+    }
+  };
+
+  const analyzeDecision = async (
+    sourceType: string,
+    source: string | null,
+    content: string,
+    setState: Dispatch<SetStateAction<ContentState>>
+  ) => {
+    if (!content) {
+      setState((prev) => ({ ...prev, error: "No content available to analyze." }));
+      return;
+    }
+    setState((prev) => ({ ...prev, deciding: true, error: "" }));
+    try {
+      const response = await fetch(`${API_BASE}/core-decision`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          source: source || "unknown",
+          source_type: sourceType,
+          content,
+          user_context: "",
+        }),
+      });
+      const decision = await extractDecisionFromResponse(response);
+      setState((prev) => ({ ...prev, decision }));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Analysis failed";
+      setState((prev) => ({ ...prev, error: message }));
+    } finally {
+      setState((prev) => ({ ...prev, deciding: false }));
     }
   };
 
@@ -222,6 +278,23 @@ export default function Home() {
                   >
                     {imageState.enhancing ? "Enhancing..." : "Enhance Content"}
                   </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      analyzeDecision(
+                        "image_ocr",
+                        imageFile?.name || null,
+                        imageState.enhanced || imageState.extracted,
+                        setImageState
+                      )
+                    }
+                    disabled={
+                      (!imageState.extracted && !imageState.enhanced) ||
+                      imageState.deciding
+                    }
+                  >
+                    {imageState.deciding ? "Analyzing..." : "Core Decision"}
+                  </Button>
                 </div>
                 {imageState.error && (
                   <p className="text-sm text-red-600 mt-3">{imageState.error}</p>
@@ -239,6 +312,28 @@ export default function Home() {
                     <p className="text-sm font-medium text-gray-700">Enhanced</p>
                     <div className="mt-2 text-sm text-gray-700 whitespace-pre-wrap bg-blue-50 border border-blue-200 rounded-md p-3">
                       {imageState.enhanced}
+                    </div>
+                  </div>
+                )}
+                {imageState.decision && (
+                  <div className="mt-4">
+                    <p className="text-sm font-medium text-gray-700">Core Decision</p>
+                    <div className="mt-2 text-sm text-gray-700 whitespace-pre-wrap bg-blue-100 border border-blue-200 rounded-md p-3 space-y-2">
+                      <p>
+                        <span className="font-semibold">Bullying:</span> {imageState.decision.bullying}
+                      </p>
+                      <p>
+                        <span className="font-semibold">Description:</span> {imageState.decision.description}
+                      </p>
+                      <p>
+                        <span className="font-semibold">Phrases:</span> {imageState.decision.phrases}
+                      </p>
+                      <p>
+                        <span className="font-semibold">Source:</span> {imageState.decision.source}
+                      </p>
+                      <p>
+                        <span className="font-semibold">Action:</span> {imageState.decision.impact_action}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -281,6 +376,23 @@ export default function Home() {
                   >
                     {newsState.enhancing ? "Enhancing..." : "Enhance Content"}
                   </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      analyzeDecision(
+                        "news_article",
+                        newsInput.trim() || null,
+                        newsState.enhanced || newsState.extracted,
+                        setNewsState
+                      )
+                    }
+                    disabled={
+                      (!newsState.extracted && !newsState.enhanced) ||
+                      newsState.deciding
+                    }
+                  >
+                    {newsState.deciding ? "Analyzing..." : "Core Decision"}
+                  </Button>
                 </div>
                 {newsState.error && (
                   <p className="text-sm text-red-600 mt-3">{newsState.error}</p>
@@ -298,6 +410,28 @@ export default function Home() {
                     <p className="text-sm font-medium text-gray-700">Enhanced</p>
                     <div className="mt-2 text-sm text-gray-700 whitespace-pre-wrap bg-purple-50 border border-purple-200 rounded-md p-3">
                       {newsState.enhanced}
+                    </div>
+                  </div>
+                )}
+                {newsState.decision && (
+                  <div className="mt-4">
+                    <p className="text-sm font-medium text-gray-700">Core Decision</p>
+                    <div className="mt-2 text-sm text-gray-700 whitespace-pre-wrap bg-purple-100 border border-purple-200 rounded-md p-3 space-y-2">
+                      <p>
+                        <span className="font-semibold">Bullying:</span> {newsState.decision.bullying}
+                      </p>
+                      <p>
+                        <span className="font-semibold">Description:</span> {newsState.decision.description}
+                      </p>
+                      <p>
+                        <span className="font-semibold">Phrases:</span> {newsState.decision.phrases}
+                      </p>
+                      <p>
+                        <span className="font-semibold">Source:</span> {newsState.decision.source}
+                      </p>
+                      <p>
+                        <span className="font-semibold">Action:</span> {newsState.decision.impact_action}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -340,6 +474,23 @@ export default function Home() {
                   >
                     {youtubeState.enhancing ? "Enhancing..." : "Enhance Content"}
                   </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      analyzeDecision(
+                        "youtube_transcript",
+                        youtubeLink.trim() || null,
+                        youtubeState.enhanced || youtubeState.extracted,
+                        setYoutubeState
+                      )
+                    }
+                    disabled={
+                      (!youtubeState.extracted && !youtubeState.enhanced) ||
+                      youtubeState.deciding
+                    }
+                  >
+                    {youtubeState.deciding ? "Analyzing..." : "Core Decision"}
+                  </Button>
                 </div>
                 {youtubeState.error && (
                   <p className="text-sm text-red-600 mt-3">{youtubeState.error}</p>
@@ -357,6 +508,28 @@ export default function Home() {
                     <p className="text-sm font-medium text-gray-700">Enhanced</p>
                     <div className="mt-2 text-sm text-gray-700 whitespace-pre-wrap bg-red-50 border border-red-200 rounded-md p-3">
                       {youtubeState.enhanced}
+                    </div>
+                  </div>
+                )}
+                {youtubeState.decision && (
+                  <div className="mt-4">
+                    <p className="text-sm font-medium text-gray-700">Core Decision</p>
+                    <div className="mt-2 text-sm text-gray-700 whitespace-pre-wrap bg-red-100 border border-red-200 rounded-md p-3 space-y-2">
+                      <p>
+                        <span className="font-semibold">Bullying:</span> {youtubeState.decision.bullying}
+                      </p>
+                      <p>
+                        <span className="font-semibold">Description:</span> {youtubeState.decision.description}
+                      </p>
+                      <p>
+                        <span className="font-semibold">Phrases:</span> {youtubeState.decision.phrases}
+                      </p>
+                      <p>
+                        <span className="font-semibold">Source:</span> {youtubeState.decision.source}
+                      </p>
+                      <p>
+                        <span className="font-semibold">Action:</span> {youtubeState.decision.impact_action}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -403,6 +576,23 @@ export default function Home() {
                   >
                     {audioState.enhancing ? "Enhancing..." : "Enhance Content"}
                   </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      analyzeDecision(
+                        "audio_transcript",
+                        audioFile?.name || null,
+                        audioState.enhanced || audioState.extracted,
+                        setAudioState
+                      )
+                    }
+                    disabled={
+                      (!audioState.extracted && !audioState.enhanced) ||
+                      audioState.deciding
+                    }
+                  >
+                    {audioState.deciding ? "Analyzing..." : "Core Decision"}
+                  </Button>
                 </div>
                 {audioState.error && (
                   <p className="text-sm text-red-600 mt-3">{audioState.error}</p>
@@ -420,6 +610,28 @@ export default function Home() {
                     <p className="text-sm font-medium text-gray-700">Enhanced</p>
                     <div className="mt-2 text-sm text-gray-700 whitespace-pre-wrap bg-green-50 border border-green-200 rounded-md p-3">
                       {audioState.enhanced}
+                    </div>
+                  </div>
+                )}
+                {audioState.decision && (
+                  <div className="mt-4">
+                    <p className="text-sm font-medium text-gray-700">Core Decision</p>
+                    <div className="mt-2 text-sm text-gray-700 whitespace-pre-wrap bg-green-100 border border-green-200 rounded-md p-3 space-y-2">
+                      <p>
+                        <span className="font-semibold">Bullying:</span> {audioState.decision.bullying}
+                      </p>
+                      <p>
+                        <span className="font-semibold">Description:</span> {audioState.decision.description}
+                      </p>
+                      <p>
+                        <span className="font-semibold">Phrases:</span> {audioState.decision.phrases}
+                      </p>
+                      <p>
+                        <span className="font-semibold">Source:</span> {audioState.decision.source}
+                      </p>
+                      <p>
+                        <span className="font-semibold">Action:</span> {audioState.decision.impact_action}
+                      </p>
                     </div>
                   </div>
                 )}
