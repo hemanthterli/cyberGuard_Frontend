@@ -3,30 +3,42 @@ import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { CheckCircle, AlertTriangle, ArrowLeft, Home } from "lucide-react";
 
-interface ResultData {
-  isHarmful: boolean;
+interface DecisionData {
+  bullying: string;
   description: string;
-  phrasesDetected?: string[];
-  source?: string;
-  suggestedAction?: string;
+  phrases: string;
+  source: string;
+  impact_action: string;
+}
+
+interface ResultState {
+  decision: DecisionData;
+  content: string;
+  source: string;
+  sourceType: string;
 }
 
 export default function Result() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { result } = location.state || { 
-    result: { 
-      isHarmful: false, 
-      description: "No analysis available." 
-    } 
+  const state = (location.state as ResultState) || {
+    decision: {
+      bullying: "no",
+      description: "No analysis available.",
+      phrases: "",
+      source: "unknown",
+      impact_action: "",
+    },
+    content: "No validated content available.",
+    source: "unknown",
+    sourceType: "unknown",
   };
 
-  const resultData: ResultData = result;
+  const isHarmful = state.decision.bullying.toLowerCase() === "yes";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 py-12 px-4">
       <div className="max-w-3xl mx-auto">
-        {/* Back Button */}
         <button
           onClick={() => navigate("/")}
           className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-6 transition-colors"
@@ -35,9 +47,8 @@ export default function Result() {
           Back to Home
         </button>
 
-        {/* Result Header */}
         <div className="text-center mb-8">
-          {resultData.isHarmful ? (
+          {isHarmful ? (
             <>
               <div className="flex justify-center mb-4">
                 <div className="p-4 bg-red-100 rounded-full">
@@ -47,9 +58,7 @@ export default function Result() {
               <h1 className="text-3xl md:text-4xl mb-2 text-red-700">
                 Harmful Content Detected
               </h1>
-              <p className="text-gray-600">
-                Please review the details below
-              </p>
+              <p className="text-gray-600">Please review the details below</p>
             </>
           ) : (
             <>
@@ -59,73 +68,55 @@ export default function Result() {
                 </div>
               </div>
               <h1 className="text-3xl md:text-4xl mb-2 text-green-700">
-                Result
+                Validation Complete
               </h1>
-              <p className="text-gray-600">
-                Content analysis complete
-              </p>
+              <p className="text-gray-600">Content analysis complete</p>
             </>
           )}
         </div>
 
-        {/* Result Content */}
-        {resultData.isHarmful ? (
-          <div className="space-y-6 mb-8">
-            {/* Description */}
-            <Card className="p-6 bg-white/80 backdrop-blur-sm border-gray-200 shadow-lg">
-              <h3 className="text-lg mb-3 text-gray-800">Description</h3>
-              <p className="text-gray-700 leading-relaxed">
-                {resultData.description}
+        <Card className="p-6 bg-white/80 backdrop-blur-sm border-gray-200 shadow-lg mb-6">
+          <h3 className="text-lg mb-3 text-gray-800">Validated Content</h3>
+          <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+            {state.content}
+          </p>
+        </Card>
+
+        <div className="grid gap-4 mb-8">
+          <Card className="p-6 bg-white/80 backdrop-blur-sm border-gray-200 shadow-lg">
+            <h3 className="text-lg mb-3 text-gray-800">Decision Summary</h3>
+            <div className="space-y-2 text-gray-700">
+              <p>
+                <span className="font-semibold">Bullying:</span> {state.decision.bullying}
               </p>
-            </Card>
-
-            {/* Phrases Detected */}
-            {resultData.phrasesDetected && resultData.phrasesDetected.length > 0 && (
-              <Card className="p-6 bg-white/80 backdrop-blur-sm border-gray-200 shadow-lg">
-                <h3 className="text-lg mb-3 text-gray-800">Phrases Detected</h3>
-                <ul className="space-y-2">
-                  {resultData.phrasesDetected.map((phrase, index) => (
-                    <li
-                      key={index}
-                      className="flex items-start gap-2 text-gray-700"
-                    >
-                      <span className="text-red-500 mt-1">•</span>
-                      <span className="italic">"{phrase}"</span>
-                    </li>
-                  ))}
-                </ul>
-              </Card>
-            )}
-
-            {/* Source */}
-            {resultData.source && (
-              <Card className="p-6 bg-white/80 backdrop-blur-sm border-gray-200 shadow-lg">
-                <h3 className="text-lg mb-3 text-gray-800">Source</h3>
-                <p className="text-gray-700">
-                  {resultData.source}
-                </p>
-              </Card>
-            )}
-
-            {/* Suggested Action */}
-            {resultData.suggestedAction && (
-              <Card className="p-6 bg-white/80 backdrop-blur-sm border-gray-200 shadow-lg">
-                <h3 className="text-lg mb-3 text-gray-800">Suggested Action</h3>
-                <p className="text-gray-700 leading-relaxed">
-                  {resultData.suggestedAction}
-                </p>
-              </Card>
-            )}
-          </div>
-        ) : (
-          <Card className="p-8 bg-white/80 backdrop-blur-sm border-gray-200 shadow-lg mb-8 text-center">
-            <p className="text-xl text-gray-700 leading-relaxed">
-              {resultData.description}
-            </p>
+              <p>
+                <span className="font-semibold">Description:</span> {state.decision.description}
+              </p>
+              <p>
+                <span className="font-semibold">Phrases:</span> {state.decision.phrases}
+              </p>
+              <p>
+                <span className="font-semibold">Source:</span> {state.decision.source}
+              </p>
+              <p>
+                <span className="font-semibold">Action:</span> {state.decision.impact_action}
+              </p>
+            </div>
           </Card>
-        )}
 
-        {/* Action Button */}
+          <Card className="p-6 bg-white/80 backdrop-blur-sm border-gray-200 shadow-lg">
+            <h3 className="text-lg mb-3 text-gray-800">Metadata</h3>
+            <div className="space-y-2 text-gray-700">
+              <p>
+                <span className="font-semibold">Source:</span> {state.source}
+              </p>
+              <p>
+                <span className="font-semibold">Content Type:</span> {state.sourceType}
+              </p>
+            </div>
+          </Card>
+        </div>
+
         <div className="text-center">
           <Button
             onClick={() => navigate("/")}
