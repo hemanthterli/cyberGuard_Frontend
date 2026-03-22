@@ -29,7 +29,8 @@ export default function Preview() {
 
   const [content, setContent] = useState(state.extractedText);
   const [enhancing, setEnhancing] = useState(false);
-  const [validated, setValidated] = useState(false);
+  const [validating, setValidating] = useState(false);
+  const [hasEnhanced, setHasEnhanced] = useState(false);
   const [error, setError] = useState("");
 
   const handleEnhance = async () => {
@@ -58,7 +59,7 @@ export default function Preview() {
         throw new Error("No enhanced content returned");
       }
       setContent(text);
-      setValidated(true);
+      setHasEnhanced(true);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Enhancement failed";
       setError(message);
@@ -73,6 +74,7 @@ export default function Preview() {
       return;
     }
     setError("");
+    setValidating(true);
     try {
       const response = await fetch(`${API_BASE}/core-decision`, {
         method: "POST",
@@ -99,6 +101,8 @@ export default function Preview() {
     } catch (err) {
       const message = err instanceof Error ? err.message : "Validation failed";
       setError(message);
+    } finally {
+      setValidating(false);
     }
   };
 
@@ -128,6 +132,9 @@ export default function Preview() {
             <p>
               <span className="font-medium text-gray-700">Content Type:</span> {state.sourceType}
             </p>
+            {hasEnhanced && (
+              <p className="text-green-600 font-medium">Content enhanced</p>
+            )}
           </div>
           <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
             {content}
@@ -137,40 +144,40 @@ export default function Preview() {
         {error && <p className="text-center text-sm text-red-600 mb-4">{error}</p>}
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-          {!validated && (
-            <div className="flex items-center gap-2">
-              <Button onClick={handleEnhance} disabled={enhancing}>
-                {enhancing ? "Enhancing..." : "Enhance Content"}
-              </Button>
-              <TooltipProvider delayDuration={100}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      className="flex items-center justify-center h-10 w-10 rounded-full border border-gray-200 bg-white text-gray-600 hover:text-gray-800"
-                    >
-                      <Info className="w-5 h-5" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs text-sm leading-relaxed">
-                    Enhancing content cleans raw data by removing noise such as
-                    special characters, links, OCR errors, and unstructured
-                    formatting. It improves readability and structure without
-                    adding new information.
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-          )}
-
-          {validated && (
+          <div className="flex items-center gap-2">
             <Button
-              onClick={handleValidate}
-              className="px-8 py-6 text-lg rounded-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg hover:shadow-xl transition-all"
+              onClick={handleEnhance}
+              disabled={enhancing || hasEnhanced}
             >
-              Validate Content
+              {enhancing ? "Enhancing..." : hasEnhanced ? "Enhanced" : "Enhance Content"}
             </Button>
-          )}
+            <TooltipProvider delayDuration={100}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="flex items-center justify-center h-10 w-10 rounded-full border border-gray-200 bg-white text-gray-600 hover:text-gray-800"
+                  >
+                    <Info className="w-5 h-5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs text-sm leading-relaxed">
+                  Enhancing content cleans raw data by removing noise such as
+                  special characters, links, OCR errors, and unstructured
+                  formatting. It improves readability and structure without
+                  adding new information.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+
+          <Button
+            onClick={handleValidate}
+            disabled={validating}
+            className="px-8 py-6 text-lg rounded-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg hover:shadow-xl transition-all"
+          >
+            {validating ? "Validating..." : "Validate Content"}
+          </Button>
         </div>
       </div>
     </div>

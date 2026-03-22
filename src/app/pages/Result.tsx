@@ -35,6 +35,12 @@ export default function Result() {
   };
 
   const isHarmful = state.decision.bullying.toLowerCase() === "yes";
+  const phrases = state.decision.phrases
+    ? state.decision.phrases
+        .split(/\n|;|,|\|/)
+        .map((phrase) => phrase.trim())
+        .filter(Boolean)
+    : [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 py-12 px-4">
@@ -92,16 +98,32 @@ export default function Result() {
               <p>
                 <span className="font-semibold">Description:</span> {state.decision.description}
               </p>
-              <p>
-                <span className="font-semibold">Phrases:</span> {state.decision.phrases}
-              </p>
-              <p>
-                <span className="font-semibold">Source:</span> {state.decision.source}
-              </p>
-              <p>
-                <span className="font-semibold">Action:</span> {state.decision.impact_action}
-              </p>
             </div>
+          </Card>
+
+          <Card className="p-6 bg-white/80 backdrop-blur-sm border-gray-200 shadow-lg">
+            <h3 className="text-lg mb-3 text-gray-800">Detected Phrases</h3>
+            {phrases.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {phrases.map((phrase, index) => (
+                  <span
+                    key={`${phrase}-${index}`}
+                    className="px-3 py-1 rounded-full bg-red-100 text-red-700 font-semibold text-sm"
+                  >
+                    {phrase}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-600">No specific phrases detected.</p>
+            )}
+          </Card>
+
+          <Card className="p-6 bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 shadow-lg">
+            <h3 className="text-lg mb-3 text-blue-900">Recommended Actions</h3>
+            <p className="text-blue-900 font-medium">
+              {state.decision.impact_action || "No action suggested."}
+            </p>
           </Card>
 
           <Card className="p-6 bg-white/80 backdrop-blur-sm border-gray-200 shadow-lg">
