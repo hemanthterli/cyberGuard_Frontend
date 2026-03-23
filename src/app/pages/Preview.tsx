@@ -9,8 +9,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../components/ui/tooltip";
+import { API_BASE } from "../lib/api";
 
-const API_BASE = "http://localhost:8002";
 
 interface ReviewState {
   extractedText: string;

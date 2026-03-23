@@ -4,8 +4,8 @@ import { Upload, Link, Youtube, Mic } from "lucide-react";
 import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
+import { API_BASE } from "../lib/api";
 
-const API_BASE = "http://localhost:8002";
 
 type ExtractedState = {
   loading: boolean;

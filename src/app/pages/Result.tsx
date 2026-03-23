@@ -11,8 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../components/ui/dialog";
-
-const API_BASE = "http://localhost:8002";
+import { API_BASE } from "../lib/api";
 
 interface DecisionData {
   bullying: string;
