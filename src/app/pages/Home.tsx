@@ -5,6 +5,7 @@ import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { API_BASE } from "../lib/api";
+import { useLanguage } from "../i18n/LanguageContext";
 
 
 type ExtractedState = {
@@ -19,6 +20,7 @@ const initialState: ExtractedState = {
 
 export default function Home() {
   const navigate = useNavigate();
+  const { t, language } = useLanguage();
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [newsInput, setNewsInput] = useState("");
   const [youtubeLink, setYoutubeLink] = useState("");
@@ -28,11 +30,11 @@ export default function Home() {
   const extractTextFromResponse = async (response: Response) => {
     const payload = await response.json();
     if (!response.ok || !payload?.success) {
-      throw new Error(payload?.error?.detail || payload?.message || "Request failed");
+      throw new Error(payload?.error?.detail || payload?.message || t("requestFailed"));
     }
     const text = payload?.data?.text;
     if (!text) {
-      throw new Error("No content extracted");
+      throw new Error(t("noContentExtracted"));
     }
     return text as string;
   };
@@ -46,12 +48,12 @@ export default function Home() {
     ].filter(Boolean);
 
     if (selections.length === 0) {
-      setState({ ...initialState, error: "Please provide one input to extract content." });
+      setState({ ...initialState, error: t("provideOneInput") });
       return;
     }
 
     if (selections.length > 1) {
-      setState({ ...initialState, error: "Please use only one input at a time." });
+      setState({ ...initialState, error: t("useOneInputOnly") });
       return;
     }
 
@@ -107,10 +109,11 @@ export default function Home() {
           extractedText,
           sourceType,
           source,
+          language,
         },
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Extraction failed";
+      const message = error instanceof Error ? error.message : t("extractionFailed");
       setState({ ...initialState, error: message });
     } finally {
       setState((prev) => ({ ...prev, loading: false }));
@@ -122,11 +125,10 @@ export default function Home() {
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl mb-4 text-gray-800">
-            Cyber Safety Analyzer
+            {t("homeTitle")}
           </h1>
           <p className="text-gray-600 max-w-2xl mx-auto text-lg leading-relaxed">
-            Upload media or paste links to extract content, then enhance and
-            validate it in the next steps.
+            {t("homeSubtitle")}
           </p>
         </div>
 
@@ -137,7 +139,7 @@ export default function Home() {
                 <Upload className="w-6 h-6 text-blue-600" />
               </div>
               <div className="flex-1">
-                <h3 className="text-lg mb-2 text-gray-800">Image Upload</h3>
+                <h3 className="text-lg mb-2 text-gray-800">{t("imageUpload")}</h3>
                 <Input
                   type="file"
                   accept="image/*"
@@ -146,7 +148,7 @@ export default function Home() {
                 />
                 {imageFile && (
                   <p className="text-sm text-green-600 mt-2">
-                    Selected: {imageFile.name}
+                    {t("selectedFile")}: {imageFile.name}
                   </p>
                 )}
               </div>
@@ -159,10 +161,10 @@ export default function Home() {
                 <Link className="w-6 h-6 text-purple-600" />
               </div>
               <div className="flex-1">
-                <h3 className="text-lg mb-2 text-gray-800">News Article</h3>
+                <h3 className="text-lg mb-2 text-gray-800">{t("newsArticle")}</h3>
                 <Input
                   type="text"
-                  placeholder="Paste article URL"
+                  placeholder={t("pasteArticleUrl")}
                   value={newsInput}
                   onChange={(e) => setNewsInput(e.target.value)}
                   className="bg-white border-gray-300"
@@ -177,7 +179,7 @@ export default function Home() {
                 <Youtube className="w-6 h-6 text-red-600" />
               </div>
               <div className="flex-1">
-                <h3 className="text-lg mb-2 text-gray-800">YouTube Link</h3>
+                <h3 className="text-lg mb-2 text-gray-800">{t("youtubeLink")}</h3>
                 <Input
                   type="url"
                   placeholder="https://youtube.com/..."
@@ -195,7 +197,7 @@ export default function Home() {
                 <Mic className="w-6 h-6 text-green-600" />
               </div>
               <div className="flex-1">
-                <h3 className="text-lg mb-2 text-gray-800">Audio Upload</h3>
+                <h3 className="text-lg mb-2 text-gray-800">{t("audioUpload")}</h3>
                 <Input
                   type="file"
                   accept="audio/*"
@@ -204,7 +206,7 @@ export default function Home() {
                 />
                 {audioFile && (
                   <p className="text-sm text-green-600 mt-2">
-                    Selected: {audioFile.name}
+                    {t("selectedFile")}: {audioFile.name}
                   </p>
                 )}
               </div>
@@ -222,7 +224,7 @@ export default function Home() {
             disabled={state.loading}
             className="px-8 py-6 text-lg rounded-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg hover:shadow-xl transition-all"
           >
-            {state.loading ? "Extracting..." : "Extract Content"}
+            {state.loading ? t("extracting") : t("extractContent")}
           </Button>
         </div>
       </div>

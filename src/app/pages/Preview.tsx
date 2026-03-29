@@ -10,21 +10,24 @@ import {
   TooltipTrigger,
 } from "../components/ui/tooltip";
 import { API_BASE } from "../lib/api";
+import { useLanguage } from "../i18n/LanguageContext";
 
 
 interface ReviewState {
   extractedText: string;
   sourceType: string;
   source: string;
+  language?: string;
 }
 
 export default function Preview() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t, language } = useLanguage();
   const state = (location.state as ReviewState) || {
-    extractedText: "No content detected.",
+    extractedText: t("noContentDetected"),
     sourceType: "unknown",
-    source: "unknown",
+    source: t("unknown"),
   };
 
   const [content, setContent] = useState(state.extractedText);
@@ -33,9 +36,18 @@ export default function Preview() {
   const [hasEnhanced, setHasEnhanced] = useState(false);
   const [error, setError] = useState("");
 
+  const getContentTypeLabel = (sourceType: string) => {
+    const normalized = sourceType.toLowerCase();
+    if (normalized === "image_ocr") return t("imageOcr");
+    if (normalized === "news_article") return t("newsArticleType");
+    if (normalized === "youtube_transcript") return t("youtubeTranscript");
+    if (normalized === "audio_transcript") return t("audioTranscript");
+    return sourceType || t("unknown");
+  };
+
   const handleEnhance = async () => {
     if (!content) {
-      setError("No content available to enhance.");
+      setError(t("noContentToEnhance"));
       return;
     }
     setError("");
@@ -52,16 +64,16 @@ export default function Preview() {
       });
       const payload = await response.json();
       if (!response.ok || !payload?.success) {
-        throw new Error(payload?.error?.detail || payload?.message || "Enhancement failed");
+        throw new Error(payload?.error?.detail || payload?.message || t("enhancementFailed"));
       }
       const text = payload?.data?.text;
       if (!text) {
-        throw new Error("No enhanced content returned");
+        throw new Error(t("noEnhancedReturned"));
       }
       setContent(text);
       setHasEnhanced(true);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Enhancement failed";
+      const message = err instanceof Error ? err.message : t("enhancementFailed");
       setError(message);
     } finally {
       setEnhancing(false);
@@ -70,7 +82,7 @@ export default function Preview() {
 
   const handleValidate = async () => {
     if (!content) {
-      setError("No content available to validate.");
+      setError(t("noContentToValidate"));
       return;
     }
     setError("");
@@ -84,11 +96,12 @@ export default function Preview() {
           source_type: state.sourceType,
           content,
           user_context: "",
+          language,
         }),
       });
       const payload = await response.json();
       if (!response.ok || !payload?.success) {
-        throw new Error(payload?.error?.detail || payload?.message || "Validation failed");
+        throw new Error(payload?.error?.detail || payload?.message || t("validationFailed"));
       }
       navigate("/result", {
         state: {
@@ -96,10 +109,11 @@ export default function Preview() {
           content,
           source: state.source,
           sourceType: state.sourceType,
+          language,
         },
       });
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Validation failed";
+      const message = err instanceof Error ? err.message : t("validationFailed");
       setError(message);
     } finally {
       setValidating(false);
@@ -114,26 +128,27 @@ export default function Preview() {
           className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-6 transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
-          Back to Home
+          {t("backToHome")}
         </button>
 
         <div className="text-center mb-8">
           <h1 className="text-3xl md:text-4xl mb-2 text-gray-800">
-            Content Review
+            {t("previewTitle")}
           </h1>
-          <p className="text-gray-600">Review and enhance extracted content</p>
+          <p className="text-gray-600">{t("previewSubtitle")}</p>
         </div>
 
         <Card className="p-6 bg-white/80 backdrop-blur-sm border-gray-200 shadow-lg mb-6">
           <div className="text-sm text-gray-500 mb-4 space-y-1">
             <p>
-              <span className="font-medium text-gray-700">Source:</span> {state.source}
+              <span className="font-medium text-gray-700">{t("source")}:</span> {state.source}
             </p>
             <p>
-              <span className="font-medium text-gray-700">Content Type:</span> {state.sourceType}
+              <span className="font-medium text-gray-700">{t("contentType")}:</span>{" "}
+              {getContentTypeLabel(state.sourceType)}
             </p>
             {hasEnhanced && (
-              <p className="text-green-600 font-medium">Content enhanced</p>
+              <p className="text-green-600 font-medium">{t("contentEnhanced")}</p>
             )}
           </div>
           <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
@@ -149,7 +164,7 @@ export default function Preview() {
               onClick={handleEnhance}
               disabled={enhancing || hasEnhanced}
             >
-              {enhancing ? "Enhancing..." : hasEnhanced ? "Enhanced" : "Enhance Content"}
+              {enhancing ? t("enhancing") : hasEnhanced ? t("enhanced") : t("enhanceContent")}
             </Button>
             <TooltipProvider delayDuration={100}>
               <Tooltip>
@@ -162,10 +177,7 @@ export default function Preview() {
                   </button>
                 </TooltipTrigger>
                 <TooltipContent className="max-w-xs text-sm leading-relaxed">
-                  Enhancing content cleans raw data by removing noise such as
-                  special characters, links, OCR errors, and unstructured
-                  formatting. It improves readability and structure without
-                  adding new information.
+                  {t("enhanceTooltip")}
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -176,7 +188,7 @@ export default function Preview() {
             disabled={validating}
             className="px-8 py-6 text-lg rounded-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg hover:shadow-xl transition-all"
           >
-            {validating ? "Validating..." : "Validate Content"}
+            {validating ? t("validating") : t("validateContent")}
           </Button>
         </div>
       </div>

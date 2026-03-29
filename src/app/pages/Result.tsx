@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "../components/ui/dialog";
 import { API_BASE } from "../lib/api";
+import { useLanguage } from "../i18n/LanguageContext";
 
 interface DecisionData {
   bullying: string;
@@ -39,22 +40,24 @@ interface ResultState {
   content: string;
   source: string;
   sourceType: string;
+  language?: string;
 }
 
 export default function Result() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t, language } = useLanguage();
   const state = (location.state as ResultState) || {
     decision: {
       bullying: "no",
-      description: "No analysis available.",
+      description: t("noAnalysisAvailable"),
       phrases: "",
-      source: "unknown",
+      source: t("unknown"),
       impact_action: "",
     },
-    content: "No validated content available.",
-    source: "unknown",
-    sourceType: "unknown",
+    content: t("noValidatedContent"),
+    source: t("unknown"),
+    sourceType: t("unknown"),
   };
 
   const [lawsData, setLawsData] = useState<CyberLawsData | null>(null);
@@ -68,6 +71,23 @@ export default function Result() {
   const [complaintError, setComplaintError] = useState("");
 
   const isHarmful = state.decision.bullying.toLowerCase() === "yes";
+
+  const getContentTypeLabel = (sourceType: string) => {
+    const normalized = sourceType.toLowerCase();
+    if (normalized === "image_ocr") return t("imageOcr");
+    if (normalized === "news_article") return t("newsArticleType");
+    if (normalized === "youtube_transcript") return t("youtubeTranscript");
+    if (normalized === "audio_transcript") return t("audioTranscript");
+    return sourceType || t("unknown");
+  };
+
+  const getBullyingLabel = (bullyingValue: string) => {
+    const normalized = bullyingValue.trim().toLowerCase();
+    if (normalized === "yes") return t("yes");
+    if (normalized === "no") return t("no");
+    return bullyingValue;
+  };
+
   const phrases = state.decision.phrases
     ? state.decision.phrases
         .split(/\n|;|,|\|/)
@@ -90,15 +110,16 @@ export default function Result() {
           content: state.content,
           core_decision: state.decision,
           retrieved_laws: [],
+          language,
         }),
       });
       const payload = await response.json();
       if (!response.ok || !payload?.success) {
-        throw new Error(payload?.error?.detail || payload?.message || "Unable to fetch cyber laws");
+        throw new Error(payload?.error?.detail || payload?.message || t("fetchLawsFailed"));
       }
       setLawsData(payload.data);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Unable to fetch cyber laws";
+      const message = err instanceof Error ? err.message : t("fetchLawsFailed");
       setLawsError(message);
     } finally {
       setLawsLoading(false);
@@ -124,20 +145,20 @@ export default function Result() {
       const response = await fetch(`${API_BASE}/generate-complaint`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(lawsData),
+        body: JSON.stringify({ ...lawsData, language }),
       });
       const raw = await response.text();
       if (!response.ok) {
         const detail = parseComplaintError(raw);
-        throw new Error(detail || "Unable to generate complaint");
+        throw new Error(detail || t("generateComplaintFailed"));
       }
       if (!raw.trim()) {
-        throw new Error("Complaint draft was empty");
+        throw new Error(t("complaintEmpty"));
       }
       setComplaintText(raw.trim());
       setComplaintOpen(true);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Unable to generate complaint";
+      const message = err instanceof Error ? err.message : t("generateComplaintFailed");
       setComplaintError(message);
     } finally {
       setComplaintLoading(false);
@@ -152,7 +173,7 @@ export default function Result() {
           className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-6 transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
-          Back to Home
+          {t("backToHome")}
         </button>
 
         <div className="text-center mb-8">
@@ -163,10 +184,8 @@ export default function Result() {
                   <AlertTriangle className="w-12 h-12 text-red-600" />
                 </div>
               </div>
-              <h1 className="text-3xl md:text-4xl mb-2 text-red-700">
-                Harmful Content Detected
-              </h1>
-              <p className="text-gray-600">Please review the details below</p>
+              <h1 className="text-3xl md:text-4xl mb-2 text-red-700">{t("harmfulDetected")}</h1>
+              <p className="text-gray-600">{t("reviewDetails")}</p>
             </>
           ) : (
             <>
@@ -175,36 +194,32 @@ export default function Result() {
                   <CheckCircle className="w-12 h-12 text-green-600" />
                 </div>
               </div>
-              <h1 className="text-3xl md:text-4xl mb-2 text-green-700">
-                Validation Complete
-              </h1>
-              <p className="text-gray-600">Content analysis complete</p>
+              <h1 className="text-3xl md:text-4xl mb-2 text-green-700">{t("validationComplete")}</h1>
+              <p className="text-gray-600">{t("contentAnalysisComplete")}</p>
             </>
           )}
         </div>
 
         <Card className="p-6 bg-white/80 backdrop-blur-sm border-gray-200 shadow-lg mb-6">
-          <h3 className="text-lg mb-3 text-gray-800">Validated Content</h3>
-          <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-            {state.content}
-          </p>
+          <h3 className="text-lg mb-3 text-gray-800">{t("validatedContent")}</h3>
+          <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{state.content}</p>
         </Card>
 
         <div className="grid gap-4 mb-8">
           <Card className="p-6 bg-white/80 backdrop-blur-sm border-gray-200 shadow-lg">
-            <h3 className="text-lg mb-3 text-gray-800">Decision Summary</h3>
+            <h3 className="text-lg mb-3 text-gray-800">{t("decisionSummary")}</h3>
             <div className="space-y-2 text-gray-700">
               <p>
-                <span className="font-semibold">Bullying:</span> {state.decision.bullying}
+                <span className="font-semibold">{t("bullying")}:</span> {getBullyingLabel(state.decision.bullying)}
               </p>
               <p>
-                <span className="font-semibold">Description:</span> {state.decision.description}
+                <span className="font-semibold">{t("description")}:</span> {state.decision.description}
               </p>
             </div>
           </Card>
 
           <Card className="p-6 bg-white/80 backdrop-blur-sm border-gray-200 shadow-lg">
-            <h3 className="text-lg mb-3 text-gray-800">Detected Phrases</h3>
+            <h3 className="text-lg mb-3 text-gray-800">{t("detectedPhrases")}</h3>
             {phrases.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {phrases.map((phrase, index) => (
@@ -217,25 +232,23 @@ export default function Result() {
                 ))}
               </div>
             ) : (
-              <p className="text-gray-600">No specific phrases detected.</p>
+              <p className="text-gray-600">{t("noPhrasesDetected")}</p>
             )}
           </Card>
 
           <Card className="p-6 bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 shadow-lg">
-            <h3 className="text-lg mb-3 text-blue-900">Recommended Actions</h3>
-            <p className="text-blue-900 font-medium">
-              {state.decision.impact_action || "No action suggested."}
-            </p>
+            <h3 className="text-lg mb-3 text-blue-900">{t("recommendedActions")}</h3>
+            <p className="text-blue-900 font-medium">{state.decision.impact_action || t("noActionSuggested")}</p>
           </Card>
 
           <Card className="p-6 bg-white/80 backdrop-blur-sm border-gray-200 shadow-lg">
-            <h3 className="text-lg mb-3 text-gray-800">Metadata</h3>
+            <h3 className="text-lg mb-3 text-gray-800">{t("metadata")}</h3>
             <div className="space-y-2 text-gray-700">
               <p>
-                <span className="font-semibold">Source:</span> {state.source}
+                <span className="font-semibold">{t("source")}:</span> {state.source}
               </p>
               <p>
-                <span className="font-semibold">Content Type:</span> {state.sourceType}
+                <span className="font-semibold">{t("contentType")}:</span> {getContentTypeLabel(state.sourceType)}
               </p>
             </div>
           </Card>
@@ -248,16 +261,10 @@ export default function Result() {
               disabled={lawsLoading}
               className="px-6 py-5 text-base rounded-full border border-blue-300 bg-white text-blue-700 hover:bg-blue-50"
             >
-              {lawsLoading
-                ? "Fetching Cyber Laws..."
-                : lawsData
-                  ? "View Cyber Laws"
-                  : "Get Cyber Laws"}
+              {lawsLoading ? t("fetchingCyberLaws") : lawsData ? t("viewCyberLaws") : t("getCyberLaws")}
             </Button>
 
-            {lawsError && (
-              <p className="text-sm text-red-600 text-center">{lawsError}</p>
-            )}
+            {lawsError && <p className="text-sm text-red-600 text-center">{lawsError}</p>}
 
             {lawsData && (
               <Button
@@ -265,13 +272,11 @@ export default function Result() {
                 disabled={complaintLoading}
                 className="px-8 py-6 text-lg rounded-full bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600 text-white shadow-lg hover:shadow-xl transition-all"
               >
-                {complaintLoading ? "Drafting Complaint..." : "Generate Complaint"}
+                {complaintLoading ? t("draftingComplaint") : t("generateComplaint")}
               </Button>
             )}
 
-            {complaintError && (
-              <p className="text-sm text-red-600 text-center">{complaintError}</p>
-            )}
+            {complaintError && <p className="text-sm text-red-600 text-center">{complaintError}</p>}
           </div>
         )}
 
@@ -281,7 +286,7 @@ export default function Result() {
             className="px-8 py-6 text-lg rounded-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg hover:shadow-xl transition-all inline-flex items-center gap-2"
           >
             <Home className="w-5 h-5" />
-            Analyze New Content
+            {t("analyzeNewContent")}
           </Button>
         </div>
       </div>
@@ -289,29 +294,21 @@ export default function Result() {
       <Dialog open={lawsOpen} onOpenChange={setLawsOpen}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Cyber Laws Analysis</DialogTitle>
-            <DialogDescription>
-              Legal guidance based on the detected content.
-            </DialogDescription>
+            <DialogTitle>{t("cyberLawsAnalysis")}</DialogTitle>
+            <DialogDescription>{t("legalGuidance")}</DialogDescription>
           </DialogHeader>
 
-          {lawsLoading && (
-            <p className="text-sm text-gray-600">Loading legal analysis...</p>
-          )}
+          {lawsLoading && <p className="text-sm text-gray-600">{t("loadingLegalAnalysis")}</p>}
 
           {!lawsLoading && lawsData && (
             <div className="space-y-5">
               <div className="rounded-lg border border-gray-200 bg-white/80 p-4 shadow-sm">
-                <h4 className="text-sm font-semibold text-gray-600">Summary</h4>
-                <p className="mt-2 text-gray-800 font-medium">
-                  {lawsData.summary}
-                </p>
+                <h4 className="text-sm font-semibold text-gray-600">{t("summary")}</h4>
+                <p className="mt-2 text-gray-800 font-medium">{lawsData.summary}</p>
               </div>
 
               <div>
-                <h4 className="text-sm font-semibold text-gray-600 mb-2">
-                  Detected Phrases
-                </h4>
+                <h4 className="text-sm font-semibold text-gray-600 mb-2">{t("detectedPhrases")}</h4>
                 {lawsData.detected_phrases?.length ? (
                   <div className="flex flex-wrap gap-2">
                     {lawsData.detected_phrases.map((phrase, index) => (
@@ -324,14 +321,12 @@ export default function Result() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500">No phrases provided.</p>
+                  <p className="text-sm text-gray-500">{t("noPhrasesProvided")}</p>
                 )}
               </div>
 
               <div>
-                <h4 className="text-sm font-semibold text-gray-600 mb-2">
-                  Applicable Laws
-                </h4>
+                <h4 className="text-sm font-semibold text-gray-600 mb-2">{t("applicableLaws")}</h4>
                 <div className="space-y-2">
                   {lawsData.applicable_laws?.length ? (
                     lawsData.applicable_laws.map((law, index) => (
@@ -340,25 +335,21 @@ export default function Result() {
                         className="rounded-lg border border-blue-200 bg-blue-50 p-3"
                       >
                         <p className="text-blue-900 font-semibold">{law.law}</p>
-                        <p className="text-blue-800 text-sm mt-1">
-                          {law.description}
-                        </p>
+                        <p className="text-blue-800 text-sm mt-1">{law.description}</p>
                       </div>
                     ))
                   ) : (
-                    <p className="text-sm text-gray-500">No laws provided.</p>
+                    <p className="text-sm text-gray-500">{t("noLawsProvided")}</p>
                   )}
                 </div>
               </div>
 
               {lawsData.recommended_actions?.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-semibold text-gray-600 mb-2">
-                    Recommended Actions
-                  </h4>
+                  <h4 className="text-sm font-semibold text-gray-600 mb-2">{t("recommendedActions")}</h4>
                   <div className="space-y-1 text-sm text-gray-700">
                     {lawsData.recommended_actions.map((action, index) => (
-                      <p key={`${action}-${index}`}>? {action}</p>
+                      <p key={`${action}-${index}`}>- {action}</p>
                     ))}
                   </div>
                 </div>
@@ -366,13 +357,11 @@ export default function Result() {
             </div>
           )}
 
-          {!lawsLoading && lawsError && (
-            <p className="text-sm text-red-600">{lawsError}</p>
-          )}
+          {!lawsLoading && lawsError && <p className="text-sm text-red-600">{lawsError}</p>}
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setLawsOpen(false)}>
-              Close
+              {t("close")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -381,25 +370,21 @@ export default function Result() {
       <Dialog open={complaintOpen} onOpenChange={setComplaintOpen}>
         <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Complaint Draft</DialogTitle>
-            <DialogDescription>
-              Copy and customize this letter before submitting.
-            </DialogDescription>
+            <DialogTitle>{t("complaintDraft")}</DialogTitle>
+            <DialogDescription>{t("copyComplaintHint")}</DialogDescription>
           </DialogHeader>
 
           {complaintText ? (
             <div className="rounded-lg border border-gray-200 bg-white/90 p-4 max-h-[60vh] overflow-y-auto">
-              <p className="text-sm text-gray-800 whitespace-pre-wrap">
-                {complaintText}
-              </p>
+              <p className="text-sm text-gray-800 whitespace-pre-wrap">{complaintText}</p>
             </div>
           ) : (
-            <p className="text-sm text-gray-500">No complaint draft available.</p>
+            <p className="text-sm text-gray-500">{t("noComplaintDraft")}</p>
           )}
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setComplaintOpen(false)}>
-              Close
+              {t("close")}
             </Button>
           </DialogFooter>
         </DialogContent>
