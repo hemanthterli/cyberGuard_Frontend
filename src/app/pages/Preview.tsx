@@ -11,6 +11,7 @@ import {
 } from "../components/ui/tooltip";
 import { API_BASE } from "../lib/api";
 import { useLanguage } from "../i18n/LanguageContext";
+import { useLocationSelection } from "../i18n/LocationContext";
 
 
 interface ReviewState {
@@ -18,12 +19,14 @@ interface ReviewState {
   sourceType: string;
   source: string;
   language?: string;
+  location?: string;
 }
 
 export default function Preview() {
   const location = useLocation();
   const navigate = useNavigate();
   const { t, language } = useLanguage();
+  const { location: selectedLocation } = useLocationSelection();
   const state = (location.state as ReviewState) || {
     extractedText: t("noContentDetected"),
     sourceType: "unknown",
@@ -113,6 +116,7 @@ export default function Preview() {
           content,
           user_context: "",
           language,
+          location: selectedLocation,
         }),
       });
       const payload = await response.json();
@@ -126,6 +130,7 @@ export default function Preview() {
           source: state.source,
           sourceType: state.sourceType,
           language,
+          location: selectedLocation,
         },
       });
     } catch (err) {

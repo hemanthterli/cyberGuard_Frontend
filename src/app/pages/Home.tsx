@@ -6,6 +6,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { API_BASE } from "../lib/api";
 import { useLanguage } from "../i18n/LanguageContext";
+import { useLocationSelection } from "../i18n/LocationContext";
 
 
 type ExtractedState = {
@@ -21,6 +22,7 @@ const initialState: ExtractedState = {
 export default function Home() {
   const navigate = useNavigate();
   const { t, language } = useLanguage();
+  const { location } = useLocationSelection();
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [newsInput, setNewsInput] = useState("");
   const [youtubeLink, setYoutubeLink] = useState("");
@@ -126,6 +128,7 @@ export default function Home() {
           sourceType,
           source,
           language,
+          location,
         },
       });
     } catch (error) {

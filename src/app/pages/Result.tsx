@@ -13,6 +13,7 @@ import {
 } from "../components/ui/dialog";
 import { API_BASE } from "../lib/api";
 import { useLanguage } from "../i18n/LanguageContext";
+import { useLocationSelection } from "../i18n/LocationContext";
 
 interface DecisionData {
   bullying: string;
@@ -41,12 +42,14 @@ interface ResultState {
   source: string;
   sourceType: string;
   language?: string;
+  location?: string;
 }
 
 export default function Result() {
   const location = useLocation();
   const navigate = useNavigate();
   const { t, language } = useLanguage();
+  const { location: selectedLocation } = useLocationSelection();
   const state = (location.state as ResultState) || {
     decision: {
       bullying: "no",
@@ -111,6 +114,7 @@ export default function Result() {
           core_decision: state.decision,
           retrieved_laws: [],
           language,
+          location: selectedLocation,
         }),
       });
       const payload = await response.json();
@@ -167,7 +171,7 @@ export default function Result() {
       const response = await fetch(`${API_BASE}/generate-complaint`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...lawsData, language }),
+        body: JSON.stringify({ ...lawsData, language, location: selectedLocation }),
       });
       const raw = await response.text();
       if (!response.ok) {
