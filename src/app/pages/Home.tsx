@@ -27,10 +27,26 @@ export default function Home() {
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [state, setState] = useState<ExtractedState>(initialState);
 
+  const extractApiError = (payload: unknown, fallback: string) => {
+    if (!payload || typeof payload !== "object") return fallback;
+    const parsed = payload as {
+      error?: { detail?: string };
+      detail?: { detail?: string } | string;
+      message?: string;
+    };
+    return (
+      parsed.error?.detail ||
+      (typeof parsed.detail === "object" ? parsed.detail?.detail : "") ||
+      (typeof parsed.detail === "string" ? parsed.detail : "") ||
+      parsed.message ||
+      fallback
+    );
+  };
+
   const extractTextFromResponse = async (response: Response) => {
     const payload = await response.json();
     if (!response.ok || !payload?.success) {
-      throw new Error(payload?.error?.detail || payload?.message || t("requestFailed"));
+      throw new Error(extractApiError(payload, t("requestFailed")));
     }
     const text = payload?.data?.text;
     if (!text) {

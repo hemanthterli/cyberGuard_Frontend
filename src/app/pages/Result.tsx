@@ -115,7 +115,7 @@ export default function Result() {
       });
       const payload = await response.json();
       if (!response.ok || !payload?.success) {
-        throw new Error(payload?.error?.detail || payload?.message || t("fetchLawsFailed"));
+        throw new Error(extractApiError(payload, t("fetchLawsFailed")));
       }
       setLawsData(payload.data);
     } catch (err) {
@@ -129,10 +129,32 @@ export default function Result() {
   const parseComplaintError = (raw: string) => {
     try {
       const parsed = JSON.parse(raw);
-      return parsed?.error?.detail || parsed?.message || "";
+      return (
+        parsed?.error?.detail ||
+        parsed?.detail?.detail ||
+        (typeof parsed?.detail === "string" ? parsed.detail : "") ||
+        parsed?.message ||
+        ""
+      );
     } catch {
       return "";
     }
+  };
+
+  const extractApiError = (payload: unknown, fallback: string) => {
+    if (!payload || typeof payload !== "object") return fallback;
+    const parsed = payload as {
+      error?: { detail?: string };
+      detail?: { detail?: string } | string;
+      message?: string;
+    };
+    return (
+      parsed.error?.detail ||
+      (typeof parsed.detail === "object" ? parsed.detail?.detail : "") ||
+      (typeof parsed.detail === "string" ? parsed.detail : "") ||
+      parsed.message ||
+      fallback
+    );
   };
 
   const handleGenerateComplaint = async () => {

@@ -36,6 +36,22 @@ export default function Preview() {
   const [hasEnhanced, setHasEnhanced] = useState(false);
   const [error, setError] = useState("");
 
+  const extractApiError = (payload: unknown, fallback: string) => {
+    if (!payload || typeof payload !== "object") return fallback;
+    const parsed = payload as {
+      error?: { detail?: string };
+      detail?: { detail?: string } | string;
+      message?: string;
+    };
+    return (
+      parsed.error?.detail ||
+      (typeof parsed.detail === "object" ? parsed.detail?.detail : "") ||
+      (typeof parsed.detail === "string" ? parsed.detail : "") ||
+      parsed.message ||
+      fallback
+    );
+  };
+
   const getContentTypeLabel = (sourceType: string) => {
     const normalized = sourceType.toLowerCase();
     if (normalized === "image_ocr") return t("imageOcr");
@@ -64,7 +80,7 @@ export default function Preview() {
       });
       const payload = await response.json();
       if (!response.ok || !payload?.success) {
-        throw new Error(payload?.error?.detail || payload?.message || t("enhancementFailed"));
+        throw new Error(extractApiError(payload, t("enhancementFailed")));
       }
       const text = payload?.data?.text;
       if (!text) {
@@ -101,7 +117,7 @@ export default function Preview() {
       });
       const payload = await response.json();
       if (!response.ok || !payload?.success) {
-        throw new Error(payload?.error?.detail || payload?.message || t("validationFailed"));
+        throw new Error(extractApiError(payload, t("validationFailed")));
       }
       navigate("/result", {
         state: {
