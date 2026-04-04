@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Textarea } from "../components/ui/textarea";
+import { LoadingModal } from "../components/LoadingModal";
 import {
   Tooltip,
   TooltipContent,
@@ -145,6 +146,19 @@ export default function Preview() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 py-12 px-4">
+      <LoadingModal
+        steps={["Enhancing Content...", "Improving Clarity...", "Structuring Information..."]}
+        isOpen={enhancing}
+      />
+      <LoadingModal
+        steps={[
+          "Validating Content...",
+          "Detecting Harmful Phrases...",
+          "Extracting Key Phrases...",
+          "Loading Classification Model...",
+        ]}
+        isOpen={validating}
+      />
       <div className="max-w-3xl mx-auto">
         <button
           onClick={() => navigate("/")}

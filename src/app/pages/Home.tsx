@@ -4,6 +4,7 @@ import { Upload, Link, Youtube, Mic } from "lucide-react";
 import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
+import { LoadingModal } from "../components/LoadingModal";
 import { API_BASE } from "../lib/api";
 import { useLanguage } from "../i18n/LanguageContext";
 import { useLocationSelection } from "../i18n/LocationContext";
@@ -28,6 +29,7 @@ export default function Home() {
   const [youtubeLink, setYoutubeLink] = useState("");
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [state, setState] = useState<ExtractedState>(initialState);
+  const [whisperLoading, setWhisperLoading] = useState(false);
 
   const extractApiError = (payload: unknown, fallback: string) => {
     if (!payload || typeof payload !== "object") return fallback;
@@ -111,6 +113,7 @@ export default function Home() {
         sourceType = "youtube_transcript";
         source = youtubeLink.trim();
       } else if (audioFile) {
+        setWhisperLoading(true);
         const formData = new FormData();
         formData.append("file", audioFile);
         const response = await fetch(`${API_BASE}/audio`, {
@@ -135,12 +138,21 @@ export default function Home() {
       const message = error instanceof Error ? error.message : t("extractionFailed");
       setState({ ...initialState, error: message });
     } finally {
+      setWhisperLoading(false);
       setState((prev) => ({ ...prev, loading: false }));
     }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 py-12 px-4">
+      <LoadingModal
+        steps={[
+          "Loading Whisper Model...",
+          "Detecting Language...",
+          "Transcribing Audio...",
+        ]}
+        isOpen={whisperLoading}
+      />
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl mb-4 text-gray-800">

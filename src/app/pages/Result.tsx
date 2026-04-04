@@ -4,6 +4,7 @@ import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Textarea } from "../components/ui/textarea";
 import { CheckCircle, AlertTriangle, ArrowLeft, Home, ExternalLink } from "lucide-react";
+import { LoadingModal } from "../components/LoadingModal";
 import {
   Dialog,
   DialogContent,
@@ -177,6 +178,19 @@ export default function Result() {
     );
   };
 
+  const GET_LAWS_STEPS = [
+    "Initializing RAG System...",
+    "Searching Vector Database...",
+    "Retrieving Relevant Laws...",
+    "Validating Laws...",
+  ];
+
+  const COMPLAINT_STEPS = [
+    "Generating Complaint...",
+    "Structuring Legal Format...",
+    "Finalizing Output...",
+  ];
+
   const handleGenerateComplaint = async () => {
     if (!lawsData) return;
     setComplaintError("");
@@ -187,7 +201,14 @@ export default function Result() {
       const response = await fetch(`${API_BASE}/generate-complaint`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...lawsData, language, location: selectedLocation }),
+        body: JSON.stringify({
+          summary: lawsData.summary,
+          detected_phrases: lawsData.detected_phrases,
+          applicable_laws: lawsData.applicable_laws,
+          recommended_actions: lawsData.recommended_actions,
+          language,
+          location: selectedLocation,
+        }),
       });
       const raw = await response.text();
       if (!response.ok) {
@@ -348,113 +369,84 @@ export default function Result() {
         </div>
       </div>
 
+      <LoadingModal steps={GET_LAWS_STEPS} isOpen={lawsLoading} />
+      <LoadingModal steps={COMPLAINT_STEPS} isOpen={complaintLoading} />
+
       <Dialog open={lawsOpen} onOpenChange={setLawsOpen}>
-        <DialogContent className="sm:max-w-2xl">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-2xl flex flex-col max-h-[85vh]">
+          <DialogHeader className="shrink-0">
             <DialogTitle>{t("cyberLawsAnalysis")}</DialogTitle>
             <DialogDescription>{t("legalGuidance")}</DialogDescription>
           </DialogHeader>
 
-          {lawsLoading && <p className="text-sm text-gray-600">{t("loadingLegalAnalysis")}</p>}
+          <div className="flex-1 overflow-y-auto pr-1">
+            {!lawsData && !lawsError && (
+              <p className="text-sm text-gray-400">{t("loadingLegalAnalysis")}</p>
+            )}
 
-          {!lawsLoading && lawsData && (
-            <div className="space-y-5">
-              {lawsData.country && (
-                <p className="text-sm font-semibold text-blue-700 bg-blue-50 rounded-lg px-4 py-2 border border-blue-200">
-                  {t("lawsApplicableTo")} {lawsData.country}
-                </p>
-              )}
+            {lawsData && (
+              <div className="space-y-5 py-1">
+                {lawsData.country && (
+                  <p className="text-sm font-semibold text-blue-700 bg-blue-50 rounded-lg px-4 py-2 border border-blue-200">
+                    {t("lawsApplicableTo")} {lawsData.country}
+                  </p>
+                )}
 
-              <div className="rounded-lg border border-gray-200 bg-white/80 p-4 shadow-sm">
-                <h4 className="text-sm font-semibold text-gray-600">{t("summary")}</h4>
-                <p className="mt-2 text-gray-800 font-medium">{lawsData.summary}</p>
-              </div>
+                <div className="rounded-lg border border-gray-200 bg-white/80 p-4 shadow-sm">
+                  <h4 className="text-sm font-semibold text-gray-600">{t("summary")}</h4>
+                  <p className="mt-2 text-gray-800 font-medium whitespace-pre-wrap">{lawsData.summary}</p>
+                </div>
 
-              <div>
-                <h4 className="text-sm font-semibold text-gray-600 mb-2">{t("detectedPhrases")}</h4>
-                {lawsData.detected_phrases?.length ? (
-                  <div className="flex flex-wrap gap-2">
-                    {lawsData.detected_phrases.map((phrase, index) => (
-                      <span
-                        key={`${phrase}-${index}`}
-                        className="px-3 py-1 rounded-full bg-red-100 text-red-700 font-semibold text-xs"
-                      >
-                        {phrase}
-                      </span>
-                    ))}
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-600 mb-3">{t("applicableLaws")}</h4>
+                  <div className="space-y-3">
+                    {lawsData.applicable_laws?.length ? (
+                      lawsData.applicable_laws.map((law, index) => {
+                        const src = lawsData.rag_sources?.[index];
+                        return (
+                          <div
+                            key={`${law.law}-${index}`}
+                            className="rounded-lg border border-blue-200 bg-blue-50 p-4"
+                          >
+                            <p className="text-blue-900 font-semibold text-sm">{law.law}</p>
+                            <p className="text-blue-800 text-sm mt-1 leading-relaxed">{law.description}</p>
+                            {src?.url && (
+                              <a
+                                href={src.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="mt-2 inline-flex items-center gap-1 text-xs text-blue-600 hover:underline font-medium"
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                                {src.title || t("viewSource")}
+                              </a>
+                            )}
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p className="text-sm text-gray-500">{t("noLawsProvided")}</p>
+                    )}
                   </div>
-                ) : (
-                  <p className="text-sm text-gray-500">{t("noPhrasesProvided")}</p>
+                </div>
+
+                {lawsData.recommended_actions?.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-600 mb-2">{t("recommendedActions")}</h4>
+                    <div className="space-y-1 text-sm text-gray-700">
+                      {lawsData.recommended_actions.map((action, index) => (
+                        <p key={`${action}-${index}`}>• {action}</p>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
+            )}
 
-              <div>
-                <h4 className="text-sm font-semibold text-gray-600 mb-2">{t("applicableLaws")}</h4>
-                <div className="space-y-2">
-                  {lawsData.applicable_laws?.length ? (
-                    lawsData.applicable_laws.map((law, index) => (
-                      <div
-                        key={`${law.law}-${index}`}
-                        className="rounded-lg border border-blue-200 bg-blue-50 p-3"
-                      >
-                        <p className="text-blue-900 font-semibold">{law.law}</p>
-                        <p className="text-blue-800 text-sm mt-1">{law.description}</p>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-gray-500">{t("noLawsProvided")}</p>
-                  )}
-                </div>
-              </div>
+            {lawsError && <p className="text-sm text-red-600">{lawsError}</p>}
+          </div>
 
-              {lawsData.recommended_actions?.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-semibold text-gray-600 mb-2">{t("recommendedActions")}</h4>
-                  <div className="space-y-1 text-sm text-gray-700">
-                    {lawsData.recommended_actions.map((action, index) => (
-                      <p key={`${action}-${index}`}>- {action}</p>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {lawsData.rag_sources && lawsData.rag_sources.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-semibold text-gray-600 mb-2">{t("ragSources")}</h4>
-                  <div className="space-y-2">
-                    {lawsData.rag_sources.map((src, index) => (
-                      <div
-                        key={`rag-${index}`}
-                        className="flex items-start gap-2 rounded-lg border border-gray-100 bg-gray-50 p-3"
-                      >
-                        <ExternalLink className="w-4 h-4 mt-0.5 text-blue-500 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-800 truncate">{src.title || t("viewSource")}</p>
-                          {src.category && (
-                            <p className="text-xs text-gray-500">{src.category}</p>
-                          )}
-                          {src.url && (
-                            <a
-                              href={src.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-blue-600 hover:underline break-all"
-                            >
-                              {src.url}
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {!lawsLoading && lawsError && <p className="text-sm text-red-600">{lawsError}</p>}
-
-          <DialogFooter>
+          <DialogFooter className="shrink-0 pt-2 border-t border-gray-100">
             <Button variant="outline" onClick={() => setLawsOpen(false)}>
               {t("close")}
             </Button>
