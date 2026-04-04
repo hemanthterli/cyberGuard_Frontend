@@ -2,7 +2,8 @@ import { useLocation, useNavigate } from "react-router";
 import { useState } from "react";
 import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { CheckCircle, AlertTriangle, ArrowLeft, Home } from "lucide-react";
+import { Textarea } from "../components/ui/textarea";
+import { CheckCircle, AlertTriangle, ArrowLeft, Home, ExternalLink } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -29,12 +30,26 @@ interface CyberLaw {
   description: string;
 }
 
+interface RAGSource {
+  title: string;
+  url?: string;
+  category?: string;
+}
+
 interface CyberLawsData {
   summary: string;
   detected_phrases: string[];
   applicable_laws: CyberLaw[];
   recommended_actions: string[];
+  country?: string;
+  rag_sources?: RAGSource[];
 }
+
+const COMPLAINT_PORTALS: Record<string, string> = {
+  india: "https://cybercrime.gov.in/",
+  usa: "https://www.ic3.gov/",
+  uk: "https://report.ncsc.gov.uk/",
+};
 
 interface ResultState {
   decision: DecisionData;
@@ -72,6 +87,7 @@ export default function Result() {
   const [complaintLoading, setComplaintLoading] = useState(false);
   const [complaintText, setComplaintText] = useState("");
   const [complaintError, setComplaintError] = useState("");
+  const [isEditingComplaint, setIsEditingComplaint] = useState(false);
 
   const isHarmful = state.decision.bullying.toLowerCase() === "yes";
 
@@ -303,6 +319,21 @@ export default function Result() {
             )}
 
             {complaintError && <p className="text-sm text-red-600 text-center">{complaintError}</p>}
+
+            {complaintText && COMPLAINT_PORTALS[selectedLocation] && (
+              <div className="flex flex-col items-center gap-1">
+                <a
+                  href={COMPLAINT_PORTALS[selectedLocation]}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-medium shadow-md hover:shadow-lg transition-all text-base"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  {t("fileComplaint")}
+                </a>
+                <span className="text-xs text-gray-500">{t("filingComplaint")}</span>
+              </div>
+            )}
           </div>
         )}
 
@@ -328,6 +359,12 @@ export default function Result() {
 
           {!lawsLoading && lawsData && (
             <div className="space-y-5">
+              {lawsData.country && (
+                <p className="text-sm font-semibold text-blue-700 bg-blue-50 rounded-lg px-4 py-2 border border-blue-200">
+                  {t("lawsApplicableTo")} {lawsData.country}
+                </p>
+              )}
+
               <div className="rounded-lg border border-gray-200 bg-white/80 p-4 shadow-sm">
                 <h4 className="text-sm font-semibold text-gray-600">{t("summary")}</h4>
                 <p className="mt-2 text-gray-800 font-medium">{lawsData.summary}</p>
@@ -380,6 +417,38 @@ export default function Result() {
                   </div>
                 </div>
               )}
+
+              {lawsData.rag_sources && lawsData.rag_sources.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-600 mb-2">{t("ragSources")}</h4>
+                  <div className="space-y-2">
+                    {lawsData.rag_sources.map((src, index) => (
+                      <div
+                        key={`rag-${index}`}
+                        className="flex items-start gap-2 rounded-lg border border-gray-100 bg-gray-50 p-3"
+                      >
+                        <ExternalLink className="w-4 h-4 mt-0.5 text-blue-500 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-800 truncate">{src.title || t("viewSource")}</p>
+                          {src.category && (
+                            <p className="text-xs text-gray-500">{src.category}</p>
+                          )}
+                          {src.url && (
+                            <a
+                              href={src.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-blue-600 hover:underline break-all"
+                            >
+                              {src.url}
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -393,7 +462,7 @@ export default function Result() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={complaintOpen} onOpenChange={setComplaintOpen}>
+      <Dialog open={complaintOpen} onOpenChange={(open) => { setComplaintOpen(open); if (!open) setIsEditingComplaint(false); }}>
         <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>{t("complaintDraft")}</DialogTitle>
@@ -402,14 +471,32 @@ export default function Result() {
 
           {complaintText ? (
             <div className="rounded-lg border border-gray-200 bg-white/90 p-4 max-h-[60vh] overflow-y-auto">
-              <p className="text-sm text-gray-800 whitespace-pre-wrap">{complaintText}</p>
+              {isEditingComplaint ? (
+                <Textarea
+                  value={complaintText}
+                  onChange={(e) => setComplaintText(e.target.value)}
+                  rows={16}
+                  className="w-full text-sm text-gray-800 border-none shadow-none resize-none focus-visible:ring-0 p-0"
+                  autoFocus
+                />
+              ) : (
+                <p className="text-sm text-gray-800 whitespace-pre-wrap">{complaintText}</p>
+              )}
             </div>
           ) : (
             <p className="text-sm text-gray-500">{t("noComplaintDraft")}</p>
           )}
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setComplaintOpen(false)}>
+          <DialogFooter className="flex-wrap gap-2">
+            {complaintText && (
+              <Button
+                variant="outline"
+                onClick={() => setIsEditingComplaint((prev) => !prev)}
+              >
+                {isEditingComplaint ? t("saveComplaint") : t("editComplaint")}
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => { setComplaintOpen(false); setIsEditingComplaint(false); }}>
               {t("close")}
             </Button>
           </DialogFooter>

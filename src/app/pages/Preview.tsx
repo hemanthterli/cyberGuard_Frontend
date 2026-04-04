@@ -3,6 +3,7 @@ import { Info, ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
+import { Textarea } from "../components/ui/textarea";
 import {
   Tooltip,
   TooltipContent,
@@ -34,6 +35,7 @@ export default function Preview() {
   };
 
   const [content, setContent] = useState(state.extractedText);
+  const [userContext, setUserContext] = useState("");
   const [enhancing, setEnhancing] = useState(false);
   const [validating, setValidating] = useState(false);
   const [hasEnhanced, setHasEnhanced] = useState(false);
@@ -114,7 +116,7 @@ export default function Preview() {
           source: state.source,
           source_type: state.sourceType,
           content,
-          user_context: "",
+          user_context: userContext.trim() || null,
           language,
           location: selectedLocation,
         }),
@@ -178,6 +180,19 @@ export default function Preview() {
         </Card>
 
         {error && <p className="text-center text-sm text-red-600 mb-4">{error}</p>}
+
+        <Card className="p-6 bg-white/80 backdrop-blur-sm border-gray-200 shadow-lg mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            {t("userContext")}
+          </label>
+          <Textarea
+            value={userContext}
+            onChange={(e) => setUserContext(e.target.value)}
+            placeholder={t("userContextPlaceholder")}
+            rows={6}
+            className="bg-white border-gray-300 text-gray-700 placeholder:text-gray-400 resize-none"
+          />
+        </Card>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
           <div className="flex items-center gap-2">
