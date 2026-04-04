@@ -100,6 +100,8 @@ export const translations = {
     userContextPlaceholder: "This context helps us better understand your case for accurate classification and complaint generation.\n\nExample:\n- Your name\n- Location\n- Brief background of the issue\n\nNote: This information is used only for internal processing and is not stored.",
     featureDisabledWhisper: "Due to hardware limitations, Whisper is not supported in the current production environment.",
     featureDisabledYoutube: "YouTube transcription is not available in production due to proxy restrictions.",
+    viewComplaint: "View Complaint",
+    downloadComplaint: "Download Complaint",
   },
   hi: {
     language: "भाषा",
@@ -192,6 +194,8 @@ export const translations = {
     userContextPlaceholder: "यह संदर्भ हमें आपके मामले को बेहतर ढंग से समझने में मदद करता है।\n\nउदाहरण:\n- आपका नाम\n- स्थान\n- समस्या की संक्षिप्त पृष्ठभूमि\n\nनोट: यह जानकारी केवल आंतरिक प्रसंस्करण के लिए उपयोग की जाती है और संग्रहीत नहीं की जाती।",
     featureDisabledWhisper: "हार्डवेयर सीमाओं के कारण, Whisper वर्तमान उत्पादन वातावरण में समर्थित नहीं है।",
     featureDisabledYoutube: "प्रॉक्सी प्रतिबंधों के कारण YouTube ट्रांसक्रिप्शन उत्पादन में उपलब्ध नहीं है।",
+    viewComplaint: "शिकायत देखें",
+    downloadComplaint: "शिकायत डाउनलोड करें",
   },
   te: {
     language: "భాష",
@@ -284,6 +288,8 @@ export const translations = {
     userContextPlaceholder: "ఈ సందర్భం మీ కేసును మెరుగ్గా అర్థం చేసుకోవడానికి సహాయపడుతుంది.\n\nఉదాహరణ:\n- మీ పేరు\n- స్థానం\n- సమస్య యొక్క సంక్షిప్త నేపథ్యం\n\nగమనిక: ఈ సమాచారం అంతర్గత ప్రాసెసింగ్‌కు మాత్రమే ఉపయోగించబడుతుంది మరియు నిల్వ చేయబడదు.",
     featureDisabledWhisper: "హార్డ్‌వేర్ పరిమితుల కారణంగా, Whisper ప్రస్తుత ప్రొడక్షన్ వాతావరణంలో మద్దతు లేదు.",
     featureDisabledYoutube: "ప్రాక్సీ పరిమితుల కారణంగా YouTube ట్రాన్స్‌క్రిప్షన్ ప్రొడక్షన్‌లో అందుబాటులో లేదు.",
+    viewComplaint: "ఫిర్యాదు చూడండి",
+    downloadComplaint: "ఫిర్యాదు డౌన్‌లోడ్ చేయండి",
   },
 } as const;
 

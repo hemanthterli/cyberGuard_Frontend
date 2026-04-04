@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Textarea } from "../components/ui/textarea";
-import { CheckCircle, AlertTriangle, ArrowLeft, Home, ExternalLink } from "lucide-react";
+import { CheckCircle, AlertTriangle, ArrowLeft, Home, ExternalLink, Download } from "lucide-react";
 import { LoadingModal } from "../components/LoadingModal";
 import {
   Dialog,
@@ -191,11 +191,15 @@ export default function Result() {
     "Finalizing Output...",
   ];
 
-  const handleGenerateComplaint = async () => {
+  const handleComplaintAction = async () => {
+    // If already generated, just open the dialog — no re-fetch
+    if (complaintText) {
+      setComplaintOpen(true);
+      return;
+    }
     if (!lawsData) return;
     setComplaintError("");
     setComplaintLoading(true);
-    setComplaintText("");
 
     try {
       const response = await fetch(`${API_BASE}/generate-complaint`, {
@@ -226,6 +230,17 @@ export default function Result() {
     } finally {
       setComplaintLoading(false);
     }
+  };
+
+  const handleDownloadComplaint = () => {
+    if (!complaintText) return;
+    const blob = new Blob([complaintText], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "complaint.txt";
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -319,42 +334,45 @@ export default function Result() {
 
         {isHarmful && (
           <div className="mb-8 flex flex-col items-center gap-4">
-            <Button
-              onClick={handleGetCyberLaws}
-              disabled={lawsLoading}
-              className="px-6 py-5 text-base rounded-full border border-blue-300 bg-white text-blue-700 hover:bg-blue-50"
-            >
-              {lawsLoading ? t("fetchingCyberLaws") : lawsData ? t("viewCyberLaws") : t("getCyberLaws")}
-            </Button>
-
-            {lawsError && <p className="text-sm text-red-600 text-center">{lawsError}</p>}
-
-            {lawsData && (
+            {/* Primary action row */}
+            <div className="flex flex-wrap justify-center gap-3">
               <Button
-                onClick={handleGenerateComplaint}
-                disabled={complaintLoading}
-                className="px-8 py-6 text-lg rounded-full bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600 text-white shadow-lg hover:shadow-xl transition-all"
+                onClick={handleGetCyberLaws}
+                disabled={lawsLoading}
+                className="px-5 py-5 text-sm rounded-full border border-blue-300 bg-white text-blue-700 hover:bg-blue-50 shadow-sm"
               >
-                {complaintLoading ? t("draftingComplaint") : t("generateComplaint")}
+                {lawsLoading ? t("fetchingCyberLaws") : lawsData ? t("viewCyberLaws") : t("getCyberLaws")}
               </Button>
-            )}
 
-            {complaintError && <p className="text-sm text-red-600 text-center">{complaintError}</p>}
+              {lawsData && (
+                <Button
+                  onClick={handleComplaintAction}
+                  disabled={complaintLoading}
+                  className="px-6 py-5 text-sm rounded-full bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600 text-white shadow-md hover:shadow-lg transition-all"
+                >
+                  {complaintLoading
+                    ? t("draftingComplaint")
+                    : complaintText
+                    ? t("viewComplaint")
+                    : t("generateComplaint")}
+                </Button>
+              )}
 
-            {complaintText && COMPLAINT_PORTALS[selectedLocation] && (
-              <div className="flex flex-col items-center gap-1">
+              {complaintText && COMPLAINT_PORTALS[selectedLocation] && (
                 <a
                   href={COMPLAINT_PORTALS[selectedLocation]}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-medium shadow-md hover:shadow-lg transition-all text-base"
+                  className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-medium shadow-md hover:shadow-lg transition-all text-sm"
                 >
                   <ExternalLink className="w-4 h-4" />
                   {t("fileComplaint")}
                 </a>
-                <span className="text-xs text-gray-500">{t("filingComplaint")}</span>
-              </div>
-            )}
+              )}
+            </div>
+
+            {lawsError && <p className="text-sm text-red-600 text-center">{lawsError}</p>}
+            {complaintError && <p className="text-sm text-red-600 text-center">{complaintError}</p>}
           </div>
         )}
 
@@ -480,6 +498,16 @@ export default function Result() {
           )}
 
           <DialogFooter className="flex-wrap gap-2">
+            {complaintText && (
+              <Button
+                variant="outline"
+                className="inline-flex items-center gap-1"
+                onClick={handleDownloadComplaint}
+              >
+                <Download className="w-4 h-4" />
+                {t("downloadComplaint")}
+              </Button>
+            )}
             {complaintText && (
               <Button
                 variant="outline"
