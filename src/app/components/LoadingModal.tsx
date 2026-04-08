@@ -17,7 +17,7 @@ export function LoadingModal({ steps, isOpen }: LoadingModalProps) {
     if (currentStep >= steps.length - 1) return;
     const timer = setTimeout(() => {
       setCurrentStep((prev) => prev + 1);
-    }, 1500);
+    }, 4000);
     return () => clearTimeout(timer);
   }, [isOpen, currentStep, steps.length]);
 

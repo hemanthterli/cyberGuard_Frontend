@@ -147,15 +147,23 @@ export default function Preview() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 py-12 px-4">
       <LoadingModal
-        steps={["Enhancing Content...", "Improving Clarity...", "Structuring Information..."]}
+        steps={[
+          "Fetching relevant content...",
+          "Extracting key legal terms...",
+          "Refining search queries...",
+          "Segmenting legal information...",
+          "Enhancing contextual accuracy...",
+        ]}
         isOpen={enhancing}
       />
       <LoadingModal
         steps={[
-          "Validating Content...",
-          "Detecting Harmful Phrases...",
-          "Extracting Key Phrases...",
-          "Loading Classification Model...",
+          "Validating legal references...",
+          "Cross-checking sources...",
+          "Ensuring content accuracy...",
+          "Verifying legal context...",
+          "Filtering inconsistencies...",
+          "Re-evaluating extracted data...",
         ]}
         isOpen={validating}
       />

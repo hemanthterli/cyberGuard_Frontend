@@ -118,8 +118,11 @@ export default function Result() {
   const handleGetCyberLaws = async () => {
     if (!isHarmful) return;
     setLawsError("");
-    setLawsOpen(true);
-    if (lawsData || lawsLoading) return;
+    if (lawsData) {
+      setLawsOpen(true);
+      return;
+    }
+    if (lawsLoading) return;
     setLawsLoading(true);
 
     try {
@@ -139,6 +142,7 @@ export default function Result() {
         throw new Error(extractApiError(payload, t("fetchLawsFailed")));
       }
       setLawsData(payload.data);
+      setLawsOpen(true);
     } catch (err) {
       const message = err instanceof Error ? err.message : t("fetchLawsFailed");
       setLawsError(message);
@@ -179,10 +183,14 @@ export default function Result() {
   };
 
   const GET_LAWS_STEPS = [
-    "Initializing RAG System...",
-    "Searching Vector Database...",
-    "Retrieving Relevant Laws...",
-    "Validating Laws...",
+    "Retrieving laws from RAG sources...",
+    "Generating multiple search queries...",
+    "Calling Google search tools...",
+    "Performing agentic RAG reasoning...",
+    "Evaluating legal relevance...",
+    "Ranking best matches...",
+    "Retrying failed queries...",
+    "Finalizing law results...",
   ];
 
   const COMPLAINT_STEPS = [
@@ -420,7 +428,6 @@ export default function Result() {
                   <div className="space-y-3">
                     {lawsData.applicable_laws?.length ? (
                       lawsData.applicable_laws.map((law, index) => {
-                        const src = lawsData.rag_sources?.[index];
                         return (
                           <div
                             key={`${law.law}-${index}`}
@@ -428,17 +435,15 @@ export default function Result() {
                           >
                             <p className="text-blue-900 font-semibold text-sm">{law.law}</p>
                             <p className="text-blue-800 text-sm mt-1 leading-relaxed">{law.description}</p>
-                            {src?.url && (
-                              <a
-                                href={src.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="mt-2 inline-flex items-center gap-1 text-xs text-blue-600 hover:underline font-medium"
-                              >
-                                <ExternalLink className="w-3 h-3" />
-                                {src.title || t("viewSource")}
-                              </a>
-                            )}
+                            <a
+                              href={`https://www.google.com/search?q=${law.law.trim().replace(/\s+/g, '+')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="mt-2 inline-flex items-center gap-1 text-xs text-blue-600 hover:underline font-medium"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                              {law.law}
+                            </a>
                           </div>
                         );
                       })
